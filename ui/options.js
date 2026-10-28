@@ -132,6 +132,37 @@ $("bypassBtn").addEventListener("click", async () => {
 
 // ---- presets ----
 
+function renderRecommended() {
+  const sel = $("recSel");
+  sel.innerHTML = "";
+  const groups = new Map();
+  Fx.RECOMMENDED.forEach((p, i) => {
+    if (!groups.has(p.cat)) groups.set(p.cat, []);
+    groups.get(p.cat).push(i);
+  });
+  for (const [cat, idxs] of groups) {
+    const og = document.createElement("optgroup");
+    og.label = cat;
+    for (const i of idxs) {
+      const o = document.createElement("option");
+      o.value = String(i);
+      o.textContent = Fx.RECOMMENDED[i].name;
+      og.append(o);
+    }
+    sel.append(og);
+  }
+}
+
+$("recApplyBtn").addEventListener("click", async () => {
+  const p = Fx.RECOMMENDED[parseInt($("recSel").value, 10)];
+  if (!p) return;
+  bypass = false;
+  updateBypassBtn();
+  await send(M.T.UI_SET_ACTIVE, { gains: p.gains.slice(), master: p.master, presetId: null });
+  setSliders(state.active.gains, state.active.master);
+  markActivePreset();
+});
+
 function markActivePreset() {
   document.querySelectorAll("#presetList li").forEach((li) => {
     li.classList.toggle("active", li.dataset.id === state.active.presetId);
@@ -383,6 +414,7 @@ function renderAll() {
 
 (async function init() {
   buildBands();
+  renderRecommended();
   await send(M.T.UI_GET_STATE);
   // keep multiple open UIs in sync (background is the only writer)
   browser.storage.onChanged.addListener(async () => {

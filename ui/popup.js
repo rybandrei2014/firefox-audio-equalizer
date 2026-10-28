@@ -3,6 +3,7 @@
 /* global FxEQ_MSG */
 
 const M = FxEQ_MSG;
+const Fx = FxEQ;
 const $ = (id) => document.getElementById(id);
 
 let state = null;
@@ -44,6 +45,22 @@ function render() {
     o.textContent = p.name;
     sel.append(o);
   }
+  const cats = new Map();
+  Fx.RECOMMENDED.forEach((p, i) => {
+    if (!cats.has(p.cat)) cats.set(p.cat, []);
+    cats.get(p.cat).push(i);
+  });
+  for (const [cat, idxs] of cats) {
+    const grp = document.createElement("optgroup");
+    grp.label = cat;
+    for (const i of idxs) {
+      const o = document.createElement("option");
+      o.value = "rec:" + i;
+      o.textContent = Fx.RECOMMENDED[i].name;
+      grp.append(o);
+    }
+    sel.append(grp);
+  }
   sel.value = state.active.presetId && state.presets.some((p) => p.id === state.active.presetId)
     ? state.active.presetId
     : "";
@@ -69,10 +86,18 @@ $("applyBtn").addEventListener("click", async () => {
     $("note").textContent = "Pick a preset first (save them on the options page).";
     return;
   }
-  await browser.runtime.sendMessage(M.envelope(M.T.UI_APPLY_PRESET, { id }));
+  if (id.indexOf("rec:") === 0) {
+    const rec = Fx.RECOMMENDED[parseInt(id.slice(4), 10)];
+    if (!rec) return;
+    await browser.runtime.sendMessage(
+      M.envelope(M.T.UI_SET_ACTIVE, { gains: rec.gains.slice(), master: rec.master, presetId: null })
+    );
+  } else {
+    await browser.runtime.sendMessage(M.envelope(M.T.UI_APPLY_PRESET, { id }));
+  }
   await refresh();
   render();
-  $("note").textContent = "Preset applied to all tabs.";
+  $("note").textContent = "Applied to all tabs.";
 });
 
 $("optionsLink").addEventListener("click", (e) => {
