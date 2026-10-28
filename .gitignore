@@ -1,0 +1,16 @@
+# web-ext output (xpi builds, lint artifacts)
+web-ext-artifacts/
+
+# node / npx
+node_modules/
+package-lock.json
+
+# OS / editor cruft
+Thumbs.db
+desktop.ini
+.DS_Store
+*.swp
+
+# debugging leftovers
+*.xpi
+web-ext-profile/

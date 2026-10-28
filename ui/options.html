@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Firefox Audio Equalizer</title>
+  <link rel="stylesheet" href="options.css">
+</head>
+<body>
+  <header>
+    <h1>Firefox Audio Equalizer</h1>
+    <span id="globalState" class="pill">loading…</span>
+  </header>
+
+  <main>
+    <section id="eqSection">
+      <h2>Equalizer</h2>
+      <div class="eqRow">
+        <div id="bands" class="bands"></div>
+        <div class="masterCol">
+          <h3>Master</h3>
+          <span class="readout" id="masterVal">100%</span>
+          <input type="range" id="master" min="0" max="1.5" step="0.01" value="1">
+          <span class="freq">gain</span>
+          <button id="bypassBtn" class="ab" type="button">A/B: EQ ON</button>
+        </div>
+      </div>
+      <p id="boostWarn" class="warn hidden"></p>
+      <p class="hint">Changes apply live to every tab. −12…+12&nbsp;dB per band, ISO octave centers.</p>
+    </section>
+
+    <section id="presetSection">
+      <h2>Presets</h2>
+      <div class="row">
+        <input type="text" id="presetName" maxlength="80" placeholder="Preset name (e.g. Podcast)">
+        <button id="savePresetBtn" type="button">Save current</button>
+      </div>
+      <ul id="presetList"></ul>
+    </section>
+
+    <section id="portSection">
+      <h2>Portability</h2>
+      <p class="hint">JSON export/import is the only format that survives Windows ↔ macOS ↔ Android transfers (settings + presets + active EQ).</p>
+      <div class="row">
+        <button id="exportBtn" type="button">Export JSON</button>
+        <button id="importBtn" type="button">Import JSON</button>
+        <input type="file" id="importFile" accept="application/json,.json" class="hidden">
+        <span id="portMsg" class="pill"></span>
+      </div>
+    </section>
+
+    <section id="siteSection">
+      <h2>Per-site control</h2>
+      <p class="hint">Sites listed here never get an EQ graph injected (kill-switch for pages that break).</p>
+      <div class="row">
+        <input type="text" id="hostInput" placeholder="example.com">
+        <button id="addHostBtn" type="button">Disable EQ for site</button>
+      </div>
+      <ul id="hostList"></ul>
+    </section>
+
+    <section id="settingsSection">
+      <h2>Behavior</h2>
+      <label class="check"><input type="checkbox" id="enabledChk"> Equalizer enabled globally</label>
+      <label class="check"><input type="checkbox" id="patchChk"> Also equalize Web Audio graphs of pages (experimental)</label>
+      <p id="patchWarn" class="warn hidden">Web Audio interception patches page scripts. If a site's own audio breaks, add it to the per-site list above.</p>
+    </section>
+
+    <section id="diagSection">
+      <h2>Diagnostics <span class="hint">(audio state of the tab you are listening to)</span></h2>
+      <div class="row">
+        <button id="refreshDiagBtn" type="button">Refresh</button>
+        <span id="diagTabName" class="pill"></span>
+      </div>
+      <dl id="diagOut" class="diag"></dl>
+    </section>
+  </main>
+
+  <script src="/common/messages.js"></script>
+  <script src="/common/eq.js"></script>
+  <script src="options.js"></script>
+</body>
+</html>

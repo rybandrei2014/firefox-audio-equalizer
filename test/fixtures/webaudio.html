@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>fxEQ fixture — page Web Audio graph</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 640px; margin: 40px auto; padding: 0 16px; background: #15171c; color: #e6e9ef; }
+    .hint { color: #9aa3b2; font-size: 13px; }
+    button { background: #2e3340; color: #e6e9ef; border: 1px solid #343846; border-radius: 6px; padding: 6px 12px; cursor: pointer; margin-right: 6px; }
+    button.sel { border-color: #4c8dff; }
+    code { color: #cdd6e4; }
+  </style>
+</head>
+<body>
+  <h1>Web Audio interception fixture</h1>
+  <p class="hint">
+    An oscillator the <em>page</em> connects straight to <code>ctx.destination</code>.
+    Enable “Also equalize Web Audio graphs” in the extension options (M2, opt-in),
+    reload this page, then play: the EQ should shape the oscillator.
+    Identity check below must keep passing (<code>ctx instanceof AudioContext</code>).
+  </p>
+
+  <p>
+    <button id="playBtn" type="button">Play</button>
+    <button id="stopBtn" type="button">Stop</button>
+    <button class="sel" data-f="31.5" type="button">31.5 Hz</button>
+    <button data-f="1000" type="button">1 kHz</button>
+    <button data-f="16000" type="button">16 kHz</button>
+  </p>
+
+  <p class="hint">
+    ctx instanceof AudioContext: <strong id="ident">?</strong> ·
+    constructor name: <strong id="ctor">?</strong> ·
+    destination type: <strong id="destType">?</strong>
+  </p>
+
+  <script src="webaudio.js"></script>
+</body>
+</html>

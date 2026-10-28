@@ -1,0 +1,47 @@
+{
+  "manifest_version": 3,
+  "name": "Firefox Audio Equalizer",
+  "version": "0.1.0",
+  "description": "Real-time 10-band parametric equalizer for audio and video playing in Firefox tabs, with presets, per-site controls and JSON portability across Windows, macOS and Android.",
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "equalizer@example.org",
+      "strict_min_version": "128.0",
+      "data_collection_permissions": { "required": ["none"] }
+    }
+  },
+  "permissions": ["storage", "tabs", "webNavigation"],
+  "host_permissions": ["<all_urls>"],
+  "background": {
+    "scripts": ["common/messages.js", "common/eq.js", "background.js"]
+  },
+  "action": {
+    "default_popup": "ui/popup.html",
+    "default_title": "Firefox Audio Equalizer"
+  },
+  "options_ui": {
+    "page": "ui/options.html",
+    "open_in_tab": true
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["common/messages.js", "common/eq.js", "content/eq-main.js"],
+      "run_at": "document_start",
+      "all_frames": true,
+      "world": "MAIN",
+      "match_origin_as_fallback": true
+    },
+    {
+      "matches": ["<all_urls>"],
+      "js": ["common/messages.js", "content/bridge.js"],
+      "run_at": "document_start",
+      "all_frames": true,
+      "match_origin_as_fallback": true
+    }
+  ],
+  "icons": {
+    "48": "icons/eq48.png",
+    "96": "icons/eq96.png"
+  }
+}

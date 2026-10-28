@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>fxEQ fixture — media element</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 640px; margin: 40px auto; padding: 0 16px; background: #15171c; color: #e6e9ef; }
+    audio { width: 100%; margin: 12px 0; }
+    .hint { color: #9aa3b2; font-size: 13px; }
+    #meter { height: 10px; background: #242730; border-radius: 5px; overflow: hidden; }
+    #meterFill { height: 100%; width: 0%; background: #4c8dff; }
+    button { background: #2e3340; color: #e6e9ef; border: 1px solid #343846; border-radius: 6px; padding: 6px 12px; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <h1>&lt;audio&gt; routing fixture</h1>
+  <p class="hint">
+    Loops <code>tone.wav</code>: 0–1 s = 31.5 Hz, 1–2 s = 1 kHz, 2–3 s = 16 kHz.
+    With the extension loaded, play this and move sliders in the options page:
+    each tone should get louder/quieter with its band. Per-band RMS ordering is
+    asserted via the extension's own analyser (options → Diagnostics).
+  </p>
+
+  <audio id="player" src="tone.wav" loop controls></audio>
+
+  <p><button id="probeBtn" type="button">Page-side RMS probe (only without extension)</button></p>
+  <div id="meter"><div id="meterFill"></div></div>
+  <p id="probeMsg" class="hint"></p>
+
+  <script src="media.js"></script>
+</body>
+</html>

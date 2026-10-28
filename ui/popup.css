@@ -1,0 +1,27 @@
+:root { color-scheme: dark; }
+body {
+  width: 300px;
+  margin: 0;
+  padding: 12px 14px;
+  font-family: system-ui, sans-serif;
+  font-size: 13px;
+  background: #242730;
+  color: #e6e9ef;
+}
+.head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
+.pill { font-size: 11px; color: #9aa3b2; border: 1px solid #343846; border-radius: 999px; padding: 2px 8px; max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.check { display: flex; align-items: center; gap: 8px; margin: 8px 0 12px; cursor: pointer; }
+.check input { accent-color: #4c8dff; width: 16px; height: 16px; }
+.row { display: flex; gap: 8px; }
+select {
+  flex: 1; background: #1b1e26; color: #e6e9ef;
+  border: 1px solid #343846; border-radius: 6px; padding: 6px 8px;
+}
+button {
+  background: #2e3340; color: #e6e9ef; border: 1px solid #343846;
+  border-radius: 6px; padding: 6px 12px; cursor: pointer;
+}
+button:hover { border-color: #4c8dff; }
+.hint { color: #9aa3b2; font-size: 11px; margin: 10px 0; min-height: 1em; }
+.link { display: inline-block; margin-top: 6px; color: #4c8dff; text-decoration: none; font-size: 12px; }
+.link:hover { text-decoration: underline; }

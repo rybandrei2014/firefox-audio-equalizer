@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="head">
+    <strong>Audio Equalizer</strong>
+    <span id="host" class="pill"></span>
+  </div>
+
+  <label class="check">
+    <input type="checkbox" id="siteToggle">
+    <span>EQ on this site</span>
+  </label>
+
+  <div class="row">
+    <select id="presetSel"></select>
+    <button id="applyBtn" type="button">Apply</button>
+  </div>
+
+  <p id="note" class="hint"></p>
+
+  <a id="optionsLink" href="#" class="link">Open full equalizer &amp; presets →</a>
+
+  <script src="/common/messages.js"></script>
+  <script src="/common/eq.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>
