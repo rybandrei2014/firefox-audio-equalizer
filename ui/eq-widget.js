@@ -232,7 +232,9 @@
       const v = parseFloat(this.sliders[idx].input.value);
       if (idx === 0) this.st.master = dbToMaster(v);
       else this.st.gains[idx - 1] = v;
+      this.activePresetId = null;
       this._reflectSliders();
+      this._syncSelectLabel();
       this._fireGains();
     }
 
@@ -254,7 +256,9 @@
       const a1 = 3 + Math.random() * 4;
       const a2 = 2 + Math.random() * 4;
       this.st.gains = Fx.BANDS.map((_, i) => Fx.clampGain(a1 * Math.sin(p1 + i * 0.62) + a2 * Math.sin(p2 + i * 0.21)));
+      this.activePresetId = null;
       this._reflectSliders();
+      this._syncSelectLabel();
       this._fireGains();
     }
 
@@ -284,7 +288,17 @@
     }
 
     _syncSelectLabel() {
-      const cur = this.curves.find((c) => c.presetId && c.presetId === this.activePresetId);
+      if (!this.sel.options.length) return;
+      let cur = this.curves.find((c) => c.presetId && c.presetId === this.activePresetId);
+      if (!cur) {
+        // Recommended presets have no presetId — match by the active curve itself.
+        cur = this.curves.find(
+          (c) =>
+            Math.abs(c.master - this.st.master) < 1e-6 &&
+            c.gains.length === this.st.gains.length &&
+            c.gains.every((g, i) => Math.abs(g - this.st.gains[i]) < 1e-6)
+        );
+      }
       this.sel.options[0].textContent = cur ? cur.name : "— Preset —";
     }
 
