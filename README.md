@@ -28,7 +28,10 @@ from the toolbar icon.
 3. Click the toolbar icon to open the equalizer popup, or open the extension's
    **Options** for the full editor and preset management.
 
-Signed releases must be installed from AMO (Android requires an AMO-signed XPI).
+For a permanent install, grab the signed `firefox-audio-equalizer-vX.Y.Z.xpi` from the
+[latest GitHub Release](https://github.com/rybandrei2014/firefox-audio-equalizer/releases) and
+install it via `about:add-ons` → gear → "Install Add-on From File:". Firefox for Android can
+only install AMO-listed or AMO-signed add-ons.
 
 ## Development
 
@@ -37,6 +40,8 @@ No build step and no framework — vanilla JS with three shared globals.
 ```bash
 npx web-ext lint            # lint gate (run before every milestone)
 npx web-ext run             # launch Firefox with the extension loaded
+node test/eq-smoke.cjs      # background load-clean + DSP invariants (no network)
+powershell tools/build.ps1  # build dist/firefox-audio-equalizer-<version>.xpi
 ```
 
 Preview the widget UI without the extension (static file server + fixtures):
@@ -48,6 +53,13 @@ npx http-server -p 8931 -c-1 .
 
 The widget needs `browser.*` APIs to persist, so fixtures only preview layout/interaction; the
 real DSP path must be tested with the add-on loaded.
+
+## Release & distribution
+
+Tagging `vX.Y.Z` runs `.github/workflows/release.yml`: it runs the checks and `web-ext lint`,
+builds the xpi, signs it with AMO when the `AMO_API_KEY`/`AMO_API_SECRET` repo secrets are set,
+and publishes a GitHub Release with the xpi attached (release notes pulled from `CHANGELOG.md`).
+Full release checklist, secret setup, and channel comparison: [docs/DISTRIBUTION.md](docs/DISTRIBUTION.md).
 
 ## How it works
 

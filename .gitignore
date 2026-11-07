@@ -1,5 +1,6 @@
 # web-ext output (xpi builds, lint artifacts)
 web-ext-artifacts/
+dist/
 
 # node / npx
 node_modules/

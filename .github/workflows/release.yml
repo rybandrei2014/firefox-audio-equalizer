@@ -1,0 +1,87 @@
+name: release
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    env:
+      AMO_API_KEY: ${{ secrets.AMO_API_KEY }}
+      AMO_API_SECRET: ${{ secrets.AMO_API_SECRET }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Syntax checks + DSP smoke
+        shell: pwsh
+        run: |
+          foreach ($f in @(
+            'background.js', 'common/messages.js', 'common/eq.js',
+            'content/eq-main.js', 'content/bridge.js',
+            'ui/eq-widget.js', 'ui/popup.js', 'ui/options.js'
+          )) {
+            node --check $f
+            if (-not $?) { throw "syntax error in $f" }
+          }
+          node test/eq-smoke.cjs
+
+      - name: Build xpi (stages runtime files -> dist/)
+        shell: pwsh
+        run: tools/build.ps1 -SkipChecks
+
+      - name: web-ext lint (staged add-on)
+        shell: pwsh
+        run: npx --yes web-ext lint --source-dir dist/staging
+
+      - name: Sign with AMO (unlisted) when credentials are configured
+        if: ${{ env.AMO_API_KEY != '' && env.AMO_API_SECRET != '' }}
+        shell: pwsh
+        run: |
+          npx --yes web-ext sign --source-dir dist/staging --artifacts-dir dist `
+            --api-key $env:AMO_API_KEY --api-secret $env:AMO_API_SECRET --channel unlisted
+          # replace the unsigned build with the signed one under the canonical name
+          $version = (Get-Content manifest.json -Raw | ConvertFrom-Json).version
+          $signed = Get-ChildItem "dist/firefox-audio-equalizer*-$version*.xpi" |
+            Where-Object { $_.Name -notmatch "unsigned" } |
+            Sort-Object LastWriteTime | Select-Object -Last 1
+          if (-not $signed) { throw "web-ext sign produced no signed xpi" }
+          Move-Item $signed.FullName "dist/firefox-audio-equalizer-$version.xpi" -Force
+
+      - name: Release notes from CHANGELOG
+        shell: pwsh
+        run: |
+          $tag = "${{ github.ref_name }}"
+          $body = ""
+          if (Test-Path CHANGELOG.md) {
+            $section = @()
+            $in = $false
+            foreach ($line in Get-Content CHANGELOG.md -Encoding utf8) {
+              if ($line.StartsWith("## ")) { $in = $line.StartsWith("## [$tag]"); continue }
+              if ($in) { $section += $line }
+            }
+            $body = ($section -join "`n").Trim()
+          }
+          if (-not $body) { $body = "Add-on build for $tag - install the attached .xpi (about:add-ons -> gear -> Install Add-on From File)." }
+          Set-Content -Path release-notes.md -Value $body -Encoding utf8
+          Get-Content release-notes.md
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: firefox-audio-equalizer-${{ github.ref_name }}
+          path: dist/*.xpi
+
+      - name: Upload to release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*.xpi
+          body_path: release-notes.md
+          make_latest: true
