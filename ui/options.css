@@ -51,6 +51,8 @@ section {
 
 .readout { font-variant-numeric: tabular-nums; font-size: 12px; color: var(--dim); }
 
+#eqWidget { max-width: 620px; }
+
 button {
   background: #2e3340;
   color: var(--text);

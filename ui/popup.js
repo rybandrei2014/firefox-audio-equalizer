@@ -1,6 +1,6 @@
 "use strict";
 
-/* global FxEQ_MSG */
+/* global FxEQ, FxEQ_MSG, FxEqWidget */
 
 const M = FxEQ_MSG;
 const Fx = FxEQ;
@@ -8,6 +8,9 @@ const $ = (id) => document.getElementById(id);
 
 let state = null;
 let host = "";
+let bypass = false;
+let preBypass = null;
+let widget = null;
 
 function safeHost(url) {
   try {
@@ -17,87 +20,118 @@ function safeHost(url) {
   }
 }
 
-async function refresh() {
-  const reply = await browser.runtime.sendMessage(M.envelope(M.T.UI_GET_STATE));
-  if (M.isEnvelope(reply) && reply.payload.state) state = reply.payload.state;
+async function send(type, payload) {
+  const reply = await browser.runtime.sendMessage(M.envelope(type, payload));
+  if (M.isEnvelope(reply) && reply.payload && reply.payload.state) {
+    state = reply.payload.state;
+  }
+  return reply;
+}
+
+function presetOptions() {
+  const list = [];
+  for (const p of state.presets) {
+    list.push({ group: "My presets", name: p.name, gains: p.gains.slice(), master: p.master, presetId: p.id });
+  }
+  for (const r of Fx.RECOMMENDED) {
+    list.push({ group: r.cat, name: r.name, gains: r.gains.slice(), master: r.master, presetId: null });
+  }
+  return list;
 }
 
 function render() {
   const disabledByHost = host && state.settings.disabledHosts.includes(host);
   const eff = state.settings.enabled && !disabledByHost;
   $("siteToggle").checked = eff;
+  $("note").textContent = !state.settings.enabled
+    ? "Globally off — press ON above."
+    : disabledByHost
+      ? "Blocked for this site (re-enable here or on the options page)."
+      : "";
 
-  if (!state.settings.enabled && !disabledByHost) {
-    $("note").textContent = "Globally bypassed — re-enable on the options page.";
-  } else if (eff) {
-    $("note").textContent = "";
-  }
-
-  const sel = $("presetSel");
-  sel.innerHTML = "";
-  const none = document.createElement("option");
-  none.value = "";
-  none.textContent = "— current sliders —";
-  sel.append(none);
-  for (const p of state.presets) {
-    const o = document.createElement("option");
-    o.value = p.id;
-    o.textContent = p.name;
-    sel.append(o);
-  }
-  const cats = new Map();
-  Fx.RECOMMENDED.forEach((p, i) => {
-    if (!cats.has(p.cat)) cats.set(p.cat, []);
-    cats.get(p.cat).push(i);
+  widget.update({
+    gains: state.active.gains,
+    master: state.active.master,
+    enabled: state.settings.enabled,
+    mono: state.settings.mono,
+    snap: state.settings.snap,
+    theme: state.settings.theme,
+    ab: bypass
   });
-  for (const [cat, idxs] of cats) {
-    const grp = document.createElement("optgroup");
-    grp.label = cat;
-    for (const i of idxs) {
-      const o = document.createElement("option");
-      o.value = "rec:" + i;
-      o.textContent = Fx.RECOMMENDED[i].name;
-      grp.append(o);
-    }
-    sel.append(grp);
-  }
-  sel.value = state.active.presetId && state.presets.some((p) => p.id === state.active.presetId)
-    ? state.active.presetId
-    : "";
+  widget.setPresets(presetOptions(), state.active.presetId);
 }
+
+// ---- widget callbacks ----
+
+let applyTimer = null;
+function queueApply(gains, master) {
+  clearTimeout(applyTimer);
+  applyTimer = setTimeout(async () => {
+    await send(M.T.UI_SET_ACTIVE, { gains, master, presetId: null });
+    widget.markPreset(state.active.presetId);
+  }, 120);
+}
+
+async function applyCurve(gains, master, presetId) {
+  bypass = false;
+  await send(M.T.UI_SET_ACTIVE, { gains, master, presetId: presetId || null });
+  render();
+}
+
+async function setBypass(on) {
+  if (on === bypass) return;
+  bypass = on;
+  if (bypass) {
+    preBypass = { gains: widget.st.gains.slice(), master: widget.st.master };
+    await send(M.T.UI_SET_ACTIVE, { gains: Fx.zeros(), master: 1, presetId: null });
+  } else {
+    const p = preBypass || { gains: Fx.zeros(), master: 1 };
+    await send(M.T.UI_SET_ACTIVE, { gains: p.gains, master: p.master, presetId: null });
+  }
+  render();
+}
+
+function buildWidget() {
+  widget = FxEqWidget.create($("eqWidget"), {
+    onGains: (gains, master) => {
+      if (bypass) {
+        preBypass = { gains, master };
+        return;
+      }
+      queueApply(gains, master);
+    },
+    onSetting: async (key, value) => {
+      await send(M.T.UI_SET_SETTING, { key, value });
+      render();
+    },
+    onPreset: (item) => applyCurve(item.gains, item.master, item.presetId),
+    onSavePreset: async () => {
+      const name = prompt("Save current curve as preset:", "My preset");
+      if (name && name.trim()) await send(M.T.UI_SAVE_PRESET, { name: name.trim() });
+      render();
+    },
+    onAB: (on) => setBypass(on),
+    onRefresh: async () => {
+      await send(M.T.UI_GET_STATE);
+      render();
+    }
+  });
+}
+
+// ---- per-site toggle ----
 
 $("siteToggle").addEventListener("change", async (e) => {
   if (e.target.checked) {
     if (host && state.settings.disabledHosts.includes(host)) {
-      await browser.runtime.sendMessage(M.envelope(M.T.UI_TOGGLE_HOST, { host, disable: false }));
+      await send(M.T.UI_TOGGLE_HOST, { host, disable: false });
     } else {
-      await browser.runtime.sendMessage(M.envelope(M.T.UI_SET_SETTING, { key: "enabled", value: true }));
+      await send(M.T.UI_SET_SETTING, { key: "enabled", value: true });
     }
   } else if (host) {
-    await browser.runtime.sendMessage(M.envelope(M.T.UI_TOGGLE_HOST, { host, disable: true }));
+    await send(M.T.UI_TOGGLE_HOST, { host, disable: true });
   }
-  await refresh();
+  await send(M.T.UI_GET_STATE);
   render();
-});
-
-$("applyBtn").addEventListener("click", async () => {
-  const id = $("presetSel").value;
-  if (!id) {
-    $("note").textContent = "Pick a preset first (save them on the options page).";
-    return;
-  }
-  if (id.indexOf("rec:") === 0) {
-    const rec = Fx.RECOMMENDED[parseInt(id.slice(4), 10)];
-    if (!rec) return;
-    await browser.runtime.sendMessage(
-      M.envelope(M.T.UI_SET_ACTIVE, { gains: rec.gains.slice(), master: rec.master, presetId: null })
-    );
-  } else {
-    await browser.runtime.sendMessage(M.envelope(M.T.UI_APPLY_PRESET, { id }));
-  }
-  await refresh();
-  render();
-  $("note").textContent = "Applied to all tabs.";
 });
 
 $("optionsLink").addEventListener("click", (e) => {
@@ -106,9 +140,16 @@ $("optionsLink").addEventListener("click", (e) => {
 });
 
 (async function init() {
+  buildWidget();
   const tabs = await browser.tabs.query({ active: true, currentWindow: true });
   host = tabs[0] ? safeHost(tabs[0].url || "") : "";
   $("host").textContent = host || "no tab";
-  await refresh();
+  await send(M.T.UI_GET_STATE);
+  browser.storage.onChanged.addListener(async () => {
+    if (widget && widget.dragging) return;
+    const ae = document.activeElement;
+    await send(M.T.UI_GET_STATE);
+    if (!(ae && ae.closest && ae.closest("#eqWidget"))) render();
+  });
   render();
 })();

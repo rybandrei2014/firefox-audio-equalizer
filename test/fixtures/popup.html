@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Popup fixture</title>
+  <link rel="stylesheet" href="/ui/popup.css">
+  <link rel="stylesheet" href="/ui/eq-widget.css">
+</head>
+<body>
+  <div class="head">
+    <strong>Audio Equalizer</strong>
+    <span id="host" class="pill">youtube.com</span>
+  </div>
+  <label class="check"><input type="checkbox" id="siteToggle" checked><span>EQ on this site</span></label>
+  <div id="eqWidget"></div>
+  <p id="note" class="hint"></p>
+  <a id="optionsLink" href="#" class="link">Full editor &amp; preset management →</a>
+
+  <script src="/common/eq.js"></script>
+  <script src="/ui/eq-widget.js"></script>
+  <script>
+    const st = { gains: [5, 4.5, 2.5, 0, -1.5, -1, 0.5, 2.5, 4.5, 5.5], master: 1, enabled: true, mono: false, snap: true, theme: "light", ab: false };
+    const w = FxEqWidget.create(document.getElementById("eqWidget"), {
+      onGains: (g, m) => { st.gains = g; st.master = m; console.log("gains", g.join(",")); },
+      onSetting: (k, v) => { st[k] = v; console.log("setting", k, v); },
+      onPreset: (p) => { st.gains = p.gains.slice(); w.update({ gains: st.gains }); console.log("preset", p.name); },
+      onSavePreset: () => console.log("save"),
+      onAB: (on) => { w.update({ ab: on }); console.log("ab", on); }
+    });
+    const list = [];
+    list.push({ group: "My presets", name: "Podcast", gains: [-4, -2, 0, 1, 2, 3, 2, 1, 0, -1], master: 1, presetId: "x" });
+    for (const r of FxEQ.RECOMMENDED) list.push({ group: r.cat, name: r.name, gains: r.gains.slice(), master: r.master, presetId: null });
+    w.setPresets(list, null);
+    w.update(st);
+  </script>
+</body>
+</html>

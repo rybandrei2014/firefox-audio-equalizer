@@ -3,6 +3,7 @@
 <head>
   <meta charset="utf-8">
   <link rel="stylesheet" href="popup.css">
+  <link rel="stylesheet" href="eq-widget.css">
 </head>
 <body>
   <div class="head">
@@ -15,17 +16,15 @@
     <span>EQ on this site</span>
   </label>
 
-  <div class="row">
-    <select id="presetSel"></select>
-    <button id="applyBtn" type="button">Apply</button>
-  </div>
+  <div id="eqWidget"></div>
 
   <p id="note" class="hint"></p>
 
-  <a id="optionsLink" href="#" class="link">Open full equalizer &amp; presets →</a>
+  <a id="optionsLink" href="#" class="link">Full editor &amp; preset management →</a>
 
   <script src="/common/messages.js"></script>
   <script src="/common/eq.js"></script>
+  <script src="eq-widget.js"></script>
   <script src="popup.js"></script>
 </body>
 </html>

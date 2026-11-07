@@ -1,6 +1,8 @@
 /* Classic Realtek/Winamp-style EQ editor widget (see g:\snapper\output\audio-equalizer.png).
    Self-contained: only .fxeqw subtree is styled. Light theme default, [data-theme="dark"] night mode. */
 
+.fxeqw, .fxeqw * { box-sizing: border-box; }
+
 .fxeqw {
   --w-bg: #f0f0f0;
   --w-panel: #ffffff;
@@ -17,8 +19,8 @@
   --w-tick: #767a80;
   --w-btn: #ffffff;
   --w-btn-hi: #dfe6f5;
-  width: max-content;
-  max-width: 100%;
+  box-sizing: border-box;
+  width: 100%;
   background: var(--w-panel);
   border: 1px solid var(--w-line);
   border-radius: 12px;
@@ -105,7 +107,7 @@
 .fxeqw .eqw-curveWrap {
   position: relative;
   flex: 1 1 auto;
-  min-width: 320px;
+  min-width: 0;
   background: var(--w-curve);
   border: 1px solid #1c1d1e;
   border-radius: 4px;
@@ -160,9 +162,9 @@
 .fxeqw .eqw-sliders {
   display: flex;
   justify-content: space-between;
-  gap: 6px;
-  padding: 6px 8px 2px;
-  overflow-x: auto;
+  align-items: flex-start;
+  gap: 4px;
+  padding: 6px 6px 2px;
 }
 
 .fxeqw .eqw-col {
@@ -170,7 +172,8 @@
   flex-direction: column;
   align-items: center;
   gap: 5px;
-  min-width: 30px;
+  flex: 1 1 0;
+  min-width: 26px;
 }
 
 .fxeqw .eqw-slider {
