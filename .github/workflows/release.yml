@@ -39,13 +39,13 @@ jobs:
 
       - name: web-ext lint (staged add-on)
         shell: pwsh
-        run: npx --yes web-ext lint --source-dir dist/staging
+        run: npx --yes web-ext@10.8.0 lint --source-dir dist/staging
 
       - name: Sign with AMO (unlisted) when credentials are configured
         if: ${{ env.AMO_API_KEY != '' && env.AMO_API_SECRET != '' }}
         shell: pwsh
         run: |
-          npx --yes web-ext sign --source-dir dist/staging --artifacts-dir dist `
+          npx --yes web-ext@10.8.0 sign --source-dir dist/staging --artifacts-dir dist `
             --api-key $env:AMO_API_KEY --api-secret $env:AMO_API_SECRET --channel unlisted
           # replace the unsigned build with the signed one under the canonical name
           $version = (Get-Content manifest.json -Raw | ConvertFrom-Json).version

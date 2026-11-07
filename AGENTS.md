@@ -66,7 +66,9 @@ lint` at the end. If you change DSP, audio must be confirmed by ear on `test/fix
 
 ## Gotchas
 
-- `strict_min_version` is `128.0`; the MAIN-world content script and MV3 event page depend on it.
+- `strict_min_version` is `142.0`. The MAIN-world content script and MV3 event page only need
+  128, but `data_collection_permissions` (required for new AMO add-ons) needs 140 desktop / 142
+  Android, so 142 is the floor that keeps `web-ext lint` warning-free.
 - Android: `storage.sync` is unavailable (bug 1625257) — `storage.local` is primary and
   `storage.sync` is a best-effort desktop mirror only. JSON export/import is the only portable
   format; don't rely on sync for correctness.

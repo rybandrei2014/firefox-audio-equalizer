@@ -20,9 +20,15 @@ self-hosted distribution viable. Set repo secrets: `AMO_API_KEY` = AMO **JWT iss
 secret **names** by hand and the values into the Value field (pasted names can carry invisible
 characters that make GitHub reject them; an issuer pasted into the Name box fails the same way).
 
-The add-on id is `rybandrei2014+firefox-audio-eq@gmail.com` (Gmail ignores `+tags`, so it
-delivers to the same inbox and stays unique per add-on). Keep this id stable — AMO updates only
-work under the same id, and a new id means a new listing.
+The add-on id is `rybandrei2014@gmail.com`. Keep it stable — AMO updates only work under the
+same id, and a new id means a new listing. Note: **web-ext's `gecko.id` validator rejects a
+`+` in the local part** (pattern `^[a-zA-Z0-9-._]*@[a-zA-Z0-9-._]+$`), so plus-tagged addresses
+like `foo+addon@gmail.com` fail `web-ext lint` — use the plain address (AMO itself allows `+`,
+but the linter's schema is stricter and CI runs the linter).
+
+`data_collection_permissions: { "required": ["none"] }` declares we collect nothing; AMO now
+requires a data-disclosure for new add-ons, and that key needs Firefox 140 (desktop) / 142
+(Android) — which is why `strict_min_version` is `142.0` (a single value covers both).
 
 ## Layout note
 

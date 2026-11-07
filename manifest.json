@@ -5,8 +5,8 @@
   "description": "Real-time 10-band parametric equalizer for audio and video playing in Firefox tabs, with presets, per-site controls and JSON portability across Windows, macOS and Android.",
   "browser_specific_settings": {
     "gecko": {
-      "id": "rybandrei2014+firefox-audio-eq@gmail.com",
-      "strict_min_version": "128.0",
+      "id": "rybandrei2014@gmail.com",
+      "strict_min_version": "142.0",
       "data_collection_permissions": { "required": ["none"] }
     }
   },
