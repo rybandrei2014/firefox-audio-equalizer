@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Firefox Audio Equalizer",
+  "name": "Tab Audio Equalizer",
   "version": "0.1.0",
-  "description": "Real-time 10-band parametric equalizer for audio and video playing in Firefox tabs, with presets, per-site controls and JSON portability across Windows, macOS and Android.",
+  "description": "Real-time 10-band parametric equalizer for audio and video playing in your browser tabs, with presets, per-site controls, mono downmix and JSON portability across Windows, macOS and Android.",
   "browser_specific_settings": {
     "gecko": {
       "id": "rybandrei2014@gmail.com",
@@ -17,7 +17,7 @@
   },
   "action": {
     "default_popup": "ui/popup.html",
-    "default_title": "Firefox Audio Equalizer"
+    "default_title": "Tab Audio Equalizer"
   },
   "options_ui": {
     "page": "ui/options.html",

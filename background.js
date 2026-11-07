@@ -126,10 +126,10 @@ function updateBadge(tabId, host) {
   browser.action.setBadgeText({ tabId: tabId, text: text }).catch(() => {});
   browser.action.setBadgeBackgroundColor({ tabId: tabId, color: color }).catch(() => {});
   const title = !eff.enabled
-    ? "Firefox Audio Equalizer — disabled on this site"
+    ? "Tab Audio Equalizer — disabled on this site"
     : st && st.suspectSilence
-      ? "Firefox Audio Equalizer — not supported on this site (protected/silent audio)"
-      : "Firefox Audio Equalizer — active";
+      ? "Tab Audio Equalizer — not supported on this site (protected/silent audio)"
+      : "Tab Audio Equalizer — active";
   browser.action.setTitle({ tabId: tabId, title: title }).catch(() => {});
 }
 
