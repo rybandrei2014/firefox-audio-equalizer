@@ -4,6 +4,7 @@
   <meta charset="utf-8">
   <title>Firefox Audio Equalizer</title>
   <link rel="stylesheet" href="options.css">
+  <link rel="stylesheet" href="eq-widget.css">
 </head>
 <body>
   <header>
@@ -14,27 +15,13 @@
   <main>
     <section id="eqSection">
       <h2>Equalizer</h2>
-      <div class="eqRow">
-        <div id="bands" class="bands"></div>
-        <div class="masterCol">
-          <h3>Master</h3>
-          <span class="readout" id="masterVal">100%</span>
-          <input type="range" id="master" min="0" max="1.5" step="0.01" value="1">
-          <span class="freq">gain</span>
-          <button id="bypassBtn" class="ab" type="button">A/B: EQ ON</button>
-        </div>
-      </div>
+      <div id="eqWidget"></div>
       <p id="boostWarn" class="warn hidden"></p>
-      <p class="hint">Changes apply live to every tab. −12…+12&nbsp;dB per band, ISO octave centers.</p>
+      <p class="hint">Changes apply live to every tab. −12…+12&nbsp;dB per band, ISO octave centers. Preamp = master gain.</p>
     </section>
 
     <section id="presetSection">
       <h2>Presets</h2>
-      <div class="row">
-        <span class="hint">Recommended:</span>
-        <select id="recSel"></select>
-        <button id="recApplyBtn" type="button">Apply</button>
-      </div>
       <div class="row">
         <input type="text" id="presetName" maxlength="80" placeholder="Preset name (e.g. Podcast)">
         <button id="savePresetBtn" type="button">Save current</button>
@@ -82,6 +69,7 @@
 
   <script src="/common/messages.js"></script>
   <script src="/common/eq.js"></script>
+  <script src="eq-widget.js"></script>
   <script src="options.js"></script>
 </body>
 </html>

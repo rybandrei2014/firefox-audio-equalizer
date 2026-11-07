@@ -1,6 +1,6 @@
 "use strict";
 
-/* global FxEQ, FxEQ_MSG */
+/* global FxEQ, FxEQ_MSG, FxEqWidget */
 
 const M = FxEQ_MSG;
 const Fx = FxEQ;
@@ -8,6 +8,7 @@ const Fx = FxEQ;
 let state = null;
 let bypass = false;
 let preBypass = null; // {gains, master} captured when A/B switched off
+let widget = null;
 
 const $ = (id) => document.getElementById(id);
 
@@ -19,71 +20,65 @@ async function send(type, payload) {
   return reply;
 }
 
-// ---- EQ sliders ----
+// ---- EQ widget (classic editor, see ui/eq-widget.js) ----
 
-function freqLabel(hz) {
-  return hz >= 1000 ? hz / 1000 + "k" : String(hz);
-}
-
-function buildBands() {
-  const wrap = $("bands");
-  wrap.innerHTML = "";
-  Fx.BANDS.forEach((b, i) => {
-    const col = document.createElement("div");
-    col.className = "band";
-
-    const val = document.createElement("span");
-    val.className = "readout";
-    val.id = "val" + i;
-
-    const sl = document.createElement("input");
-    sl.type = "range";
-    sl.min = String(Fx.GAIN_MIN);
-    sl.max = String(Fx.GAIN_MAX);
-    sl.step = "0.5";
-    sl.value = "0";
-    sl.setAttribute("orient", "vertical"); // Firefox native vertical slider
-    sl.id = "sl" + i;
-    sl.setAttribute("aria-label", freqLabel(b.freq) + " Hz gain");
-
-    const lab = document.createElement("span");
-    lab.className = "freq";
-    lab.textContent = freqLabel(b.freq);
-
-    sl.addEventListener("input", () => {
-      readouts();
-      queueApply();
-    });
-
-    col.append(val, sl, lab);
-    wrap.append(col);
-  });
-
-  $("master").addEventListener("input", () => {
-    readouts();
-    queueApply();
+function buildWidget() {
+  widget = FxEqWidget.create($("eqWidget"), {
+    onGains: (gains, master) => {
+      warnBoost(gains);
+      if (bypass) {
+        preBypass = { gains, master }; // remember while audio stays flat
+        return;
+      }
+      queueApply(gains, master);
+    },
+    onSetting: async (key, value) => {
+      await send(M.T.UI_SET_SETTING, { key, value });
+      renderSettings();
+    },
+    onPreset: (item) => applyCurve(item.gains, item.master, item.presetId),
+    onSavePreset: () => {
+      const name = prompt("Save current curve as preset:", "My preset");
+      if (name && name.trim()) savePreset(name.trim());
+    },
+    onAB: (on) => setBypass(on),
+    onRefresh: async () => {
+      await send(M.T.UI_GET_STATE);
+      renderAll();
+    }
   });
 }
 
-function collect() {
-  const gains = Fx.BANDS.map((_, i) => parseFloat($("sl" + i).value));
-  const master = parseFloat($("master").value);
-  return { gains, master };
+function presetOptions() {
+  const list = [];
+  for (const p of state.presets) {
+    list.push({ group: "My presets", name: p.name, gains: p.gains.slice(), master: p.master, presetId: p.id });
+  }
+  for (const r of Fx.RECOMMENDED) {
+    list.push({ group: r.cat, name: r.name, gains: r.gains.slice(), master: r.master, presetId: null });
+  }
+  return list;
 }
 
-function readouts() {
-  Fx.BANDS.forEach((_, i) => {
-    const v = parseFloat($("sl" + i).value);
-    $("val" + i).textContent = (v > 0 ? "+" : "") + v.toFixed(1);
+function renderEq() {
+  warnBoost(state.active.gains);
+  widget.update({
+    gains: state.active.gains,
+    master: state.active.master,
+    enabled: state.settings.enabled,
+    mono: state.settings.mono,
+    snap: state.settings.snap,
+    theme: state.settings.theme,
+    ab: bypass
   });
-  const m = parseFloat($("master").value);
-  $("masterVal").textContent = Math.round(m * 100) + "%";
+  widget.setPresets(presetOptions(), state.active.presetId);
+}
 
-  const { gains } = collect();
+function warnBoost(gains) {
   const boost = gains.reduce((s, g) => s + Math.max(0, g), 0);
   const warn = $("boostWarn");
   if (boost > 6) {
-    warn.textContent = "Total boost +" + boost.toFixed(1) + " dB — risk of clipping; lower master gain if audio distorts.";
+    warn.textContent = "Total boost +" + boost.toFixed(1) + " dB — risk of clipping; lower the Preamp if audio distorts.";
     warn.classList.remove("hidden");
   } else {
     warn.classList.add("hidden");
@@ -91,82 +86,46 @@ function readouts() {
 }
 
 let applyTimer = null;
-function queueApply() {
+function queueApply(gains, master) {
   clearTimeout(applyTimer);
   applyTimer = setTimeout(async () => {
-    const { gains, master } = collect();
-    if (bypass) {
-      preBypass = { gains, master }; // remember while audio stays flat
-      return;
-    }
     await send(M.T.UI_SET_ACTIVE, { gains, master, presetId: null });
     markActivePreset();
   }, 150);
 }
 
-function setSliders(gains, master) {
-  gains.forEach((g, i) => { $("sl" + i).value = String(g); });
-  $("master").value = String(master);
-  readouts();
+async function applyCurve(gains, master, presetId) {
+  bypass = false;
+  await send(M.T.UI_SET_ACTIVE, { gains, master, presetId: presetId || null });
+  renderAll();
 }
 
-// ---- A/B bypass ----
-
-function updateBypassBtn() {
-  $("bypassBtn").textContent = bypass ? "A/B: EQ OFF" : "A/B: EQ ON";
-}
-
-$("bypassBtn").addEventListener("click", async () => {
-  const cur = collect();
-  if (!bypass) {
-    bypass = true;
-    preBypass = cur;
+async function setBypass(on) {
+  if (on === bypass) return;
+  bypass = on;
+  if (bypass) {
+    preBypass = { gains: widget.st.gains.slice(), master: widget.st.master };
     await send(M.T.UI_SET_ACTIVE, { gains: Fx.zeros(), master: 1, presetId: null });
   } else {
-    bypass = false;
-    const p = preBypass || cur;
+    const p = preBypass || { gains: Fx.zeros(), master: 1 };
     await send(M.T.UI_SET_ACTIVE, { gains: p.gains, master: p.master, presetId: null });
   }
-  updateBypassBtn();
-});
+  renderAll();
+}
 
 // ---- presets ----
 
-function renderRecommended() {
-  const sel = $("recSel");
-  sel.innerHTML = "";
-  const groups = new Map();
-  Fx.RECOMMENDED.forEach((p, i) => {
-    if (!groups.has(p.cat)) groups.set(p.cat, []);
-    groups.get(p.cat).push(i);
-  });
-  for (const [cat, idxs] of groups) {
-    const og = document.createElement("optgroup");
-    og.label = cat;
-    for (const i of idxs) {
-      const o = document.createElement("option");
-      o.value = String(i);
-      o.textContent = Fx.RECOMMENDED[i].name;
-      og.append(o);
-    }
-    sel.append(og);
-  }
-}
-
-$("recApplyBtn").addEventListener("click", async () => {
-  const p = Fx.RECOMMENDED[parseInt($("recSel").value, 10)];
-  if (!p) return;
-  bypass = false;
-  updateBypassBtn();
-  await send(M.T.UI_SET_ACTIVE, { gains: p.gains.slice(), master: p.master, presetId: null });
-  setSliders(state.active.gains, state.active.master);
-  markActivePreset();
-});
-
 function markActivePreset() {
+  if (widget) widget.markPreset(state.active.presetId);
   document.querySelectorAll("#presetList li").forEach((li) => {
     li.classList.toggle("active", li.dataset.id === state.active.presetId);
   });
+}
+
+async function savePreset(name) {
+  bypass = false;
+  await send(M.T.UI_SAVE_PRESET, { name });
+  renderAll();
 }
 
 function renderPresets() {
@@ -174,7 +133,7 @@ function renderPresets() {
   ul.innerHTML = "";
   if (state.presets.length === 0) {
     const li = document.createElement("li");
-    li.innerHTML = '<span class="name hint">No presets yet — dial in sliders and press “Save current”.</span>';
+    li.innerHTML = '<span class="name hint">No presets yet — dial in the sliders and press “Save current” or ♥.</span>';
     ul.append(li);
   }
   for (const p of state.presets) {
@@ -191,13 +150,7 @@ function renderPresets() {
 
     const load = document.createElement("button");
     load.textContent = "Load";
-    load.addEventListener("click", async () => {
-      bypass = false;
-      updateBypassBtn();
-      await send(M.T.UI_APPLY_PRESET, { id: p.id });
-      setSliders(state.active.gains, state.active.master);
-      markActivePreset();
-    });
+    load.addEventListener("click", () => applyCurve(p.gains.slice(), p.master, p.id));
 
     const rename = document.createElement("button");
     rename.textContent = "Rename";
@@ -213,6 +166,7 @@ function renderPresets() {
       if (!confirm('Delete preset "' + p.name + '"?')) return;
       await send(M.T.UI_DELETE_PRESET, { id: p.id });
       renderPresets();
+      if (widget) widget.setPresets(presetOptions(), state.active.presetId);
     });
 
     li.append(name, meta, load, rename, del);
@@ -227,11 +181,8 @@ $("savePresetBtn").addEventListener("click", async () => {
     $("presetName").focus();
     return;
   }
-  bypass = false;
-  updateBypassBtn();
-  await send(M.T.UI_SAVE_PRESET, { name });
+  await savePreset(name);
   $("presetName").value = "";
-  renderPresets();
 });
 
 // ---- export / import ----
@@ -334,6 +285,15 @@ function renderSettings() {
   $("patchWarn").classList.toggle("hidden", !(state.settings.webAudioPatch && state.settings.warnWebAudio));
   const pill = $("globalState");
   pill.textContent = state.settings.enabled ? "enabled" : "globally bypassed";
+  if (widget) {
+    widget.update({
+      enabled: state.settings.enabled,
+      mono: state.settings.mono,
+      snap: state.settings.snap,
+      theme: state.settings.theme,
+      ab: bypass
+    });
+  }
 }
 
 // ---- diagnostics (active tab STATUS from background cache) ----
@@ -405,22 +365,21 @@ setInterval(() => {
 // ---- init ----
 
 function renderAll() {
-  setSliders(state.active.gains, state.active.master);
+  renderEq();
   renderPresets();
   renderHosts();
   renderSettings();
-  updateBypassBtn();
 }
 
 (async function init() {
-  buildBands();
-  renderRecommended();
+  buildWidget();
   await send(M.T.UI_GET_STATE);
   // keep multiple open UIs in sync (background is the only writer)
   browser.storage.onChanged.addListener(async () => {
+    if (widget && widget.dragging) return;
     const ae = document.activeElement;
     await send(M.T.UI_GET_STATE);
-    if (!(ae && ae.closest && ae.closest("#bands"))) renderAll();
+    if (!(ae && ae.closest && ae.closest("#eqWidget"))) renderAll();
   });
   renderAll();
   refreshDiag();

@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>EQ widget fixture</title>
+  <link rel="stylesheet" href="/ui/eq-widget.css">
+</head>
+<body style="background:#555;padding:20px">
+  <div id="eqWidget"></div>
+  <script src="/common/eq.js"></script>
+  <script src="/ui/eq-widget.js"></script>
+  <script>
+    const st = { gains: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0], master: 1, enabled: true, mono: false, snap: true, theme: "light", ab: false };
+    const w = FxEqWidget.create(document.getElementById("eqWidget"), {
+      onGains: (g, m) => { st.gains = g; st.master = m; console.log("gains", g.join(","), "master", m.toFixed(3)); },
+      onSetting: (k, v) => { st[k] = v; console.log("setting", k, v); },
+      onPreset: (p) => { st.gains = p.gains.slice(); st.master = p.master; w.update({ gains: st.gains, master: st.master }); console.log("preset", p.group, p.name); },
+      onSavePreset: () => console.log("save preset"),
+      onAB: (on) => { st.ab = on; w.update({ ab: on }); console.log("ab", on); },
+      onRefresh: () => console.log("refresh")
+    });
+    const list = [];
+    for (const r of FxEQ.RECOMMENDED) list.push({ group: r.cat, name: r.name, gains: r.gains.slice(), master: r.master, presetId: null });
+    w.setPresets(list, null);
+    window.__w = w;
+  </script>
+</body>
+</html>

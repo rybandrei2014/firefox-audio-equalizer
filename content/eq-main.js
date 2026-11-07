@@ -15,7 +15,7 @@
   global.__fxEQ = api;
 
   // Effective settings mirrored from background (single source of truth).
-  const S = { gains: Fx.zeros(), master: 1, enabled: true, webAudioPatch: false };
+  const S = { gains: Fx.zeros(), master: 1, enabled: true, mono: false, webAudioPatch: false };
 
   let ext = null; // our own ctx's EQ chain handle
   const pageChains = []; // EQ chains built inside patched page AudioContexts
@@ -49,7 +49,7 @@
     if (!NATIVE_AC) return false;
     try {
       api.ctx = new NATIVE_AC();
-      ext = Fx.buildEqChain(api.ctx, effectiveGains(), api.ctx.destination, S.enabled ? S.master : 1);
+      ext = Fx.buildEqChain(api.ctx, effectiveGains(), api.ctx.destination, S.enabled ? S.master : 1, S.enabled && S.mono);
       armResume();
       startTelemetry();
       return true;
@@ -168,7 +168,7 @@
   function patchPageContext(c) {
     try {
       const realDest = c.destination;
-      const chain = Fx.buildEqChain(c, effectiveGains(), realDest, S.enabled ? S.master : 1);
+      const chain = Fx.buildEqChain(c, effectiveGains(), realDest, S.enabled ? S.master : 1, S.enabled && S.mono);
       pageChains.push(chain);
       Object.defineProperty(c, "destination", {
         configurable: true,
@@ -217,6 +217,7 @@
     S.gains = Fx.sanitizeGains(p.gains);
     S.master = Fx.sanitizeMaster(p.master);
     S.enabled = p.enabled !== false;
+    S.mono = !!p.mono;
     S.webAudioPatch = !!p.webAudioPatch;
 
     if (S.webAudioPatch) installPatch();
@@ -229,10 +230,12 @@
     if (ext) {
       ext.setGains(effectiveGains());
       ext.setMaster(S.enabled ? S.master : 1);
+      ext.setMono(S.enabled && S.mono);
     }
     for (const c of pageChains) {
       c.setGains(effectiveGains());
       c.setMaster(S.enabled ? S.master : 1);
+      c.setMono(S.enabled && S.mono);
     }
     report(true);
   }

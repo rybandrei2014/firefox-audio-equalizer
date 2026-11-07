@@ -1,0 +1,290 @@
+/* Classic Realtek/Winamp-style EQ editor widget (see g:\snapper\output\audio-equalizer.png).
+   Self-contained: only .fxeqw subtree is styled. Light theme default, [data-theme="dark"] night mode. */
+
+.fxeqw {
+  --w-bg: #f0f0f0;
+  --w-panel: #ffffff;
+  --w-line: #3a3a3a;
+  --w-text: #111111;
+  --w-lbl: #14266b;
+  --w-top: #2f3133;
+  --w-curve: #45484a;
+  --w-grid: #5c5f62;
+  --w-groove: #c4c4c4;
+  --w-fill: #1b6ef3;
+  --w-thumb: #8a8f96;
+  --w-thumb-line: #5f6469;
+  --w-tick: #767a80;
+  --w-btn: #ffffff;
+  --w-btn-hi: #dfe6f5;
+  width: max-content;
+  max-width: 100%;
+  background: var(--w-panel);
+  border: 1px solid var(--w-line);
+  border-radius: 12px;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  color: var(--w-text);
+  font-family: Arial, "Segoe UI", sans-serif;
+  font-size: 13px;
+  user-select: none;
+}
+
+.fxeqw[data-theme="dark"] {
+  --w-bg: #1b1d20;
+  --w-panel: #24262a;
+  --w-line: #000000;
+  --w-text: #e6e9ef;
+  --w-lbl: #9db4ff;
+  --w-top: #17181a;
+  --w-curve: #2c2f31;
+  --w-grid: #44474a;
+  --w-groove: #565a60;
+  --w-tick: #9aa0a8;
+  --w-btn: #303439;
+  --w-btn-hi: #3d4a66;
+}
+
+/* ---------- top band ---------- */
+
+.fxeqw .eqw-top {
+  display: flex;
+  align-items: stretch;
+  gap: 10px;
+  background: var(--w-top);
+  border-radius: 8px;
+  padding: 8px;
+  min-height: 88px;
+}
+
+.fxeqw .eqw-power {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  background: var(--w-panel);
+  border: 1px solid var(--w-line);
+  border-radius: 8px;
+  padding: 6px;
+  min-width: 86px;
+}
+
+.fxeqw .eqw-power .eqw-onoff {
+  display: flex;
+  justify-content: space-between;
+  gap: 2px;
+  border-bottom: 1px solid #bbb;
+  padding: 2px 2px 5px;
+}
+
+.fxeqw .eqw-power button {
+  font: inherit;
+  font-weight: 700;
+  color: var(--w-text);
+  background: none;
+  border: 0;
+  padding: 1px 6px;
+  cursor: pointer;
+  border-radius: 3px;
+}
+
+.fxeqw .eqw-power .eqw-sep { color: #999; font-weight: 700; }
+
+.fxeqw .eqw-power button[aria-pressed="true"] {
+  background: var(--w-top);
+  color: #fff;
+}
+
+.fxeqw .eqw-power .eqw-flatbtn {
+  font-size: 15px;
+  line-height: 1;
+  padding: 3px 6px;
+}
+
+.fxeqw .eqw-curveWrap {
+  position: relative;
+  flex: 1 1 auto;
+  min-width: 320px;
+  background: var(--w-curve);
+  border: 1px solid #1c1d1e;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.fxeqw .eqw-curveWrap canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.fxeqw .eqw-dbc {
+  position: absolute;
+  font-family: "Courier New", monospace;
+  font-size: 11px;
+  color: #f2f2f2;
+  z-index: 1;
+}
+
+.fxeqw .eqw-dbc.tl { top: 4px; left: 6px; }
+.fxeqw .eqw-dbc.tr { top: 4px; right: 6px; }
+.fxeqw .eqw-dbc.bl { bottom: 4px; left: 6px; }
+.fxeqw .eqw-dbc.br { bottom: 4px; right: 6px; }
+
+.fxeqw .eqw-iconCol {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 4px;
+}
+
+.fxeqw button.eqw-icon {
+  width: 26px;
+  height: 26px;
+  border: 1px solid var(--w-line);
+  border-radius: 4px;
+  background: var(--w-btn);
+  color: var(--w-text);
+  font: inherit;
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+}
+
+.fxeqw button.eqw-icon:hover { background: var(--w-btn-hi); }
+
+/* ---------- sliders ---------- */
+
+.fxeqw .eqw-sliders {
+  display: flex;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 6px 8px 2px;
+  overflow-x: auto;
+}
+
+.fxeqw .eqw-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  min-width: 30px;
+}
+
+.fxeqw .eqw-slider {
+  position: relative;
+  width: 28px;
+  height: 148px;
+  cursor: ns-resize;
+}
+
+.fxeqw .eqw-slider::before,
+.fxeqw .eqw-slider::after {
+  content: "";
+  position: absolute;
+  top: 8px;
+  bottom: 8px;
+  width: 7px;
+  background: repeating-linear-gradient(to bottom, var(--w-tick) 0 1px, transparent 1px 12.5%);
+  opacity: 0.8;
+}
+
+.fxeqw .eqw-slider::before { left: 0; }
+.fxeqw .eqw-slider::after { right: 0; }
+
+.fxeqw .eqw-groove {
+  position: absolute;
+  left: 50%;
+  top: 8px;
+  bottom: 8px;
+  width: 2px;
+  margin-left: -1px;
+  background: var(--w-groove);
+}
+
+.fxeqw .eqw-fill {
+  position: absolute;
+  left: 50%;
+  bottom: 8px;
+  width: 3px;
+  margin-left: -1.5px;
+  height: 0;
+  background: var(--w-fill);
+}
+
+.fxeqw .eqw-thumb {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 14px;
+  height: 14px;
+  margin: -7px 0 0 -7px;
+  border-radius: 50%;
+  background: var(--w-thumb);
+  border: 1px solid var(--w-thumb-line);
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.55);
+}
+
+.fxeqw .eqw-slider input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: ns-resize;
+  appearance: none;
+}
+
+.fxeqw .eqw-slider input:focus-visible + .eqw-thumb {
+  outline: 2px solid var(--w-fill);
+  outline-offset: 2px;
+}
+
+.fxeqw .eqw-lbl {
+  font-weight: 700;
+  font-size: 12px;
+  color: var(--w-lbl);
+  white-space: nowrap;
+}
+
+/* ---------- bottom bar ---------- */
+
+.fxeqw .eqw-bottom {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  border-top: 1px solid #cfcfcf;
+  border-bottom: 1px solid #cfcfcf;
+  padding: 6px 8px;
+}
+
+.fxeqw[data-theme="dark"] .eqw-bottom { border-color: #444; }
+
+.fxeqw .eqw-check {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 700;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.fxeqw .eqw-check input { accent-color: var(--w-top); width: 14px; height: 14px; margin: 0; }
+
+.fxeqw .eqw-bottom select {
+  flex: 1 1 auto;
+  min-width: 150px;
+  font: inherit;
+  color: var(--w-text);
+  background: var(--w-btn);
+  border: 1px solid var(--w-line);
+  border-radius: 3px;
+  padding: 4px 6px;
+}
+
+.fxeqw .eqw-bottom .eqw-div { width: 1px; align-self: stretch; background: #cfcfcf; }
+
+.fxeqw[data-theme="dark"] .eqw-bottom .eqw-div { background: #444; }

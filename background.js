@@ -9,7 +9,10 @@ const DEFAULTS = {
     enabled: true,
     disabledHosts: [],
     webAudioPatch: false, // M2 ships opt-in (plan §10.5)
-    warnWebAudio: true
+    warnWebAudio: true,
+    mono: false,
+    snap: true,
+    theme: "light"
   },
   active: { gains: FxEQ.zeros(), master: 1.0, presetId: null },
   presets: []
@@ -25,6 +28,9 @@ function mergeDefaults(st) {
     if (typeof st.settings.enabled === "boolean") out.settings.enabled = st.settings.enabled;
     if (typeof st.settings.webAudioPatch === "boolean") out.settings.webAudioPatch = st.settings.webAudioPatch;
     if (typeof st.settings.warnWebAudio === "boolean") out.settings.warnWebAudio = st.settings.warnWebAudio;
+    if (typeof st.settings.mono === "boolean") out.settings.mono = st.settings.mono;
+    if (typeof st.settings.snap === "boolean") out.settings.snap = st.settings.snap;
+    if (st.settings.theme === "light" || st.settings.theme === "dark") out.settings.theme = st.settings.theme;
     if (Array.isArray(st.settings.disabledHosts)) {
       out.settings.disabledHosts = st.settings.disabledHosts.filter(h => typeof h === "string").slice(0, 500);
     }
@@ -78,6 +84,7 @@ function effectiveFor(host) {
     enabled: on,
     gains: state.active.gains,
     master: state.active.master,
+    mono: !!state.settings.mono,
     webAudioPatch: !!state.settings.webAudioPatch
   };
 }
@@ -150,7 +157,12 @@ async function setActive(gains, master, presetId) {
 
 // ---- message routing ----
 
-const SETTINGS_KEYS = ["enabled", "webAudioPatch", "warnWebAudio"];
+const SETTINGS_KEYS = ["enabled", "webAudioPatch", "warnWebAudio", "mono", "snap", "theme"];
+
+function settingValue(key, value) {
+  if (key === "theme") return value === "dark" ? "dark" : "light";
+  return !!value;
+}
 
 browser.runtime.onMessage.addListener(async (msg, sender) => {
   if (!FxEQ_MSG.isEnvelope(msg)) return undefined;
@@ -226,7 +238,7 @@ browser.runtime.onMessage.addListener(async (msg, sender) => {
       if (!SETTINGS_KEYS.includes(key)) {
         return FxEQ_MSG.envelope(T.STATE, { state: state, error: "unknown setting" });
       }
-      state.settings[key] = !!msg.payload.value;
+      state.settings[key] = settingValue(key, msg.payload.value);
       await persist();
       await pushAllTabs();
       return FxEQ_MSG.envelope(T.STATE, { state: state });

@@ -63,6 +63,7 @@
     { cat: "Special", name: "Car", gains: [3.5, 4.5, 3.5, 1.5, 0, 0.5, 1.5, 2, 3, 2.5], master: 1.0 },
     { cat: "Special", name: "Night", gains: [-1, -0.5, 0, 0.5, 1, 0.5, 0, -0.5, -1, -1.5], master: 1.0 },
     { cat: "Special", name: "Bass boost (Max Bass)", gains: [6, 7, 5, 2.5, 0, 0.5, 0.5, 0.5, 1, 0.5], master: 1.0 },
+    { cat: "Special", name: "Full Bass & Treble", gains: [5, 4.5, 2.5, 0, -1.5, -1, 0.5, 2.5, 4.5, 5.5], master: 1.0 },
     { cat: "Special", name: "Pop", gains: [1, 1.5, 1.5, 1, 1.5, 2.5, 3, 2.5, 2, 1.5], master: 1.0 },
     { cat: "Special", name: "K-Pop", gains: [2.5, 3, 2.5, 1.5, 1, 2, 3, 3.5, 4, 3.5], master: 1.0 },
     { cat: "Special", name: "World", gains: [1.5, 2, 2, 1.5, 1, 2, 2, 1.5, 1, 0.5], master: 1.0 },
@@ -147,9 +148,31 @@
     }
   }
 
-  // Builds: input -> [biquad cascade] -> master -> analyser -> outputNode.
+  // mono downmix via a 4-gain L/R cross matrix (kept in-graph so toggling
+  // Mono never rebuilds the audio graph).
+  function setMonoGains(mg, on, ctx, smooth) {
+    const v = on ? [0.5, 0.5, 0.5, 0.5] : [1, 0, 0, 1]; // [LL, LR, RL, RR]
+    const p = [mg.gLL.gain, mg.gLR.gain, mg.gRL.gain, mg.gRR.gain];
+    for (let i = 0; i < 4; i++) {
+      if (smooth === false) p[i].value = v[i];
+      else setSmooth(p[i], v[i], ctx);
+    }
+  }
+
+  function setMonoGains(mg, on, ctx, smooth) {
+    const v = on ? [0.5, 0.5, 0.5, 0.5] : [1, 0, 0, 1]; // [LL, LR, RL, RR]
+    const p = [mg.gLL.gain, mg.gLR.gain, mg.gRL.gain, mg.gRR.gain];
+    for (let i = 0; i < 4; i++) {
+      if (smooth === false) p[i].value = v[i];
+      else setSmooth(p[i], v[i], ctx);
+    }
+  }
+
+  // Builds: input -> [biquad cascade] -> master -> [mono downmix] -> analyser -> outputNode.
+  // The mono stage is always present (4 gains switched 1/0 <-> 0.5), so toggling
+  // Mono never rebuilds the graph.
   // Returns a handle that can update gains live without rebuilding.
-  function buildEqChain(ctx, gains, outputNode, master) {
+  function buildEqChain(ctx, gains, outputNode, master, mono) {
     const g = sanitizeGains(gains);
     const input = ctx.createGain();
     const filters = [];
@@ -167,10 +190,28 @@
     const masterGain = ctx.createGain();
     masterGain.gain.value = sanitizeMaster(master);
     node.connect(masterGain);
+    // mono stage: out_L = gLL*in_L + gLR*in_R, out_R = gRL*in_L + gRR*in_R.
+    const splitter = ctx.createChannelSplitter(2);
+    const merger = ctx.createChannelMerger(2);
+    const gLL = ctx.createGain();
+    const gLR = ctx.createGain();
+    const gRL = ctx.createGain();
+    const gRR = ctx.createGain();
+    masterGain.connect(splitter);
+    splitter.connect(gLL, 0);
+    splitter.connect(gLR, 1);
+    splitter.connect(gRL, 0);
+    splitter.connect(gRR, 1);
+    gLL.connect(merger, 0, 0);
+    gLR.connect(merger, 0, 0);
+    gRL.connect(merger, 0, 1);
+    gRR.connect(merger, 0, 1);
+    const monoG = { gLL: gLL, gLR: gLR, gRL: gRL, gRR: gRR };
+    setMonoGains(monoG, !!mono, ctx, false);
     const analyser = ctx.createAnalyser();
     analyser.fftSize = 2048;
     analyser.smoothingTimeConstant = 0.5;
-    masterGain.connect(analyser);
+    merger.connect(analyser);
     analyser.connect(outputNode);
     return {
       input: input,
@@ -187,6 +228,9 @@
       setMaster: function (m, smooth) {
         if (smooth === false) masterGain.gain.value = sanitizeMaster(m);
         else setSmooth(masterGain.gain, sanitizeMaster(m), ctx);
+      },
+      setMono: function (on, smooth) {
+        setMonoGains(monoG, !!on, ctx, smooth);
       }
     };
   }
