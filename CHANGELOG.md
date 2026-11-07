@@ -4,8 +4,6 @@ All notable changes to this project are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 Release notes for GitHub Releases are taken from the matching `## [vX.Y.Z]` section below (see `.github/workflows/release.yml`).
 
-## [Unreleased]
-
 ## [v0.1.0] - 2026-11-07
 
 ### Added
@@ -27,5 +25,4 @@ Release notes for GitHub Releases are taken from the matching `## [vX.Y.Z]` sect
   `tools/build.ps1`, and `.github/workflows/release.yml` (build → `web-ext lint` → optional AMO
   signing → GitHub Release with the xpi attached). See `docs/DISTRIBUTION.md`.
 
-[Unreleased]: https://github.com/rybandrei2014/firefox-audio-equalizer/compare/v0.1.0...HEAD
 [v0.1.0]: https://github.com/rybandrei2014/firefox-audio-equalizer/releases/tag/v0.1.0
